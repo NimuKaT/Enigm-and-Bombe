@@ -2,17 +2,18 @@
 
 # Rotor settings for the Enigma I from - https://www.cryptomuseum.com/
 maxRotors = 3
-
+#         ABCDEFGHIJKLMNOPQRSTUVWXYZ
 rotor1 = "EKMFLGDQVZNTOWYHXUSPAIBRCJ"
 rotor2 = "AJDKSIRUXBLHWTMCQGZNPYFVOE"
 rotor3 = "BDFHJLCPRTXVZNYEIWGAKMUSQO"
+         #TAG
 rotor1Turn = "Q"
 rotor2Turn = "E"
 rotor3Turn = "V"
 
 rotors = [rotor1, rotor2, rotor3]
 rotorTurnOver = [rotor1Turn, rotor2Turn, rotor3Turn]
-
+#       ABCDEFGHIJKLMNOPQRSTUVWXYZ    
 ekwa = "EJMZALYXVBWFCRQUONTSPIKHGD"
 ekwb = "YRUHQSLDPXNGOKMIEBFZCWVJAT"
 ekwc = "FVPJIAOYEDRZXWGCTKUQSBNMHL"
@@ -109,13 +110,21 @@ class Rotor:
         offSet = (ord(letter) - 65) + self.index
         if (offSet >= 26):
             offSet -=  26
-        return self.wiring[offSet]
+        code = ord(self.wiring[offSet]) + self.index
+        if (code > 90):
+            code -= 26
+
+        return chr(code)
 
     def encodeOut(self, letter):
-        offSet = (ord(letter) - 65) + self.index
-        if (offSet >= 26):
-            offSet -=  26
-        return self.outWiring[offSet]
+        offSet = (ord(letter) - 65) - self.index
+        if (offSet < 0):
+            offSet +=  26
+        code = ord(self.outWiring[offSet]) - self.index
+        if (code < 65):
+            code += 26
+
+        return chr(code)
 
     def passValue(self, letter, turnOver=False, isTurning=False):
         # print("Rotor letter in: " + letter)
@@ -218,10 +227,6 @@ class Enigma:
 
 
 if __name__ == "__main__":
-    p = PlugBoard("ABCDEFGHIJKLMNOPQRSTUVWXYZ")
-    r = Reflector(ekwa)
-    p.setLeftDevice(r)
-    e = Enigma()
     enigma = Enigma()
 
     text = str(input("Enter some plain/cipher text or EOF: "))
