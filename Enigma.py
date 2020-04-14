@@ -1,18 +1,20 @@
-
-
 # Rotor settings for the Enigma I from - https://www.cryptomuseum.com/
 maxRotors = 3
 #         ABCDEFGHIJKLMNOPQRSTUVWXYZ
 rotor1 = "EKMFLGDQVZNTOWYHXUSPAIBRCJ"
 rotor2 = "AJDKSIRUXBLHWTMCQGZNPYFVOE"
 rotor3 = "BDFHJLCPRTXVZNYEIWGAKMUSQO"
+rotor4 = "ESOVPZJAYQUIRHXLNFTGKDCMWB"
+rotor5 = "VZBRGITYUPSDNHLXAWMJQOFECK"
          #TAG
 rotor1Turn = "Q"
 rotor2Turn = "E"
 rotor3Turn = "V"
+rotor4Turn = "J"
+rotor5Turn = "Z"
 
-rotors = [rotor1, rotor2, rotor3]
-rotorTurnOver = [rotor1Turn, rotor2Turn, rotor3Turn]
+rotors = [rotor1, rotor2, rotor3, rotor4, rotor5]
+rotorTurnOver = [rotor1Turn, rotor2Turn, rotor3Turn, rotor4Turn, rotor5Turn]
 #       ABCDEFGHIJKLMNOPQRSTUVWXYZ    
 ekwa = "EJMZALYXVBWFCRQUONTSPIKHGD"
 ekwb = "YRUHQSLDPXNGOKMIEBFZCWVJAT"
@@ -33,11 +35,11 @@ class PlugBoard:
     def encode(self, letter):
         return self.wiring[ord(letter) - 65]
 
-    def passValue(self, letter, turnOver=False, isTurning=False):
+    def passValue(self, letter, step=False):
         encoded = self.encode(letter)
 
         if (not self.leftDevice == None):
-            ret = self.leftDevice.passValue(encoded, turnOver=turnOver, isTurning=isTurning)
+            ret = self.leftDevice.passValue(encoded, step=step)
             return self.encode(ret)
         else:
             return encoded
@@ -51,6 +53,10 @@ class PlugBoard:
             return self.leftDevice.getSetting()
         else:
             return ""
+
+    def next(self, step):
+        if not self.leftDevice == None:
+            self.leftDevice.next(step)
 
 class Reflector:
     def __init__(self, string):
@@ -68,7 +74,7 @@ class Reflector:
         # print("Reflector letter out: " + self.wiring[ord(letter) - 65])
         return self.wiring[ord(letter) - 65]
 
-    def passValue(self, letter, turnOver=False, isTurning=False):
+    def passValue(self, letter, step=False):
         return self.encode(letter)
 
     def setLeftDevice(self, device):
@@ -80,8 +86,12 @@ class Reflector:
         else:
             return ""
 
+    def next(self, step):
+        if not self.leftDevice == None:
+            self.leftDevice.next(step)
+
 class Rotor:
-    def __init__(self, string, turnOver="A", position="A"):
+    def __init__(self, string, turnOver="A", position="A", isSecond=False):
         self.wiring = []
         self.outWiring = []
         self.leftDevice = None
@@ -90,6 +100,7 @@ class Rotor:
         self.index = ord(self.position) - 65
         self.turnIndex = ord(self.turnOver) - 65
         self.trunOverNext = False
+        self.middle = isSecond
 
         self.turnLeft = False
         self.turnLater = False
@@ -104,7 +115,8 @@ class Rotor:
             for i in range(0, 26):
                 self.outWiring[ord(self.wiring[i]) - 65] = chr(65+i)
         else:
-            print("Error. Incorrect number of letters passed to PlugBoard.")
+            print(string)
+            print("Error. Incorrect number of letters passed to Rotor.")
 
     def encode(self, letter):
         offSet = (ord(letter) - 65) + self.index
@@ -126,13 +138,13 @@ class Rotor:
 
         return chr(code)
 
-    def passValue(self, letter, turnOver=False, isTurning=False):
+    def passValue(self, letter, step=False):
         # print("Rotor letter in: " + letter)
         encoded = self.encode(letter)
         # print("Rotor letter encoded: " + encoded)
         if (not self.leftDevice == None):
-            self.isTurning(turnOver, isTurning)
-            ret = self.leftDevice.passValue(encoded, turnOver=self.turnLeft)
+            self.isTurning(step)
+            ret = self.leftDevice.passValue(encoded, step=self.turnLeft)
             # print("Rotor letter returned: " + ret)
             encoded = self.encodeOut(ret)
             # print("Rotor letter out: " + encoded)
@@ -148,28 +160,42 @@ class Rotor:
     def turn(self):
         if (self.willTurn):
             self.willTurn = False
-            self.turnLeft = False
-            self.turnLater = False
-            self.hasTurned = True
             self.index += 1
             if (self.index >= 26):
                 self.index -= 26
             self.position = chr(self.index + 65)
-        else:
-            self.hasTurend = False
+        self.turnLeft = False
+        # if (self.willTurn):
+        #     self.willTurn = False
+        #     self.turnLeft = False
+        #     self.turnLater = False
+        #     self.hasTurned = True
+        #     self.index += 1
+        #     if (self.index >= 26):
+        #         self.index -= 26
+        #     self.position = chr(self.index + 65)
+        # else:
+        #     self.hasTurend = False
 
-    def isTurning(self, turnOver, isTurning):
-        if self.index == self.turnIndex:
+    def isTurning(self, step):
+        if (step):
+            self.willTurn = True
+        elif (self.middle and self.index == self.turnIndex):
+            self.willTurn = True
+        if (self.willTurn and self.index == self.turnIndex):
             self.turnLeft = True
-        else:
-            self.turnLeft = False
 
-        if (self.turnLeft and self.hasTurned and not isTurning):
-            self.turnLater = True
-            self.willTurn = True
-        if (self.turnLater or turnOver):
-            self.turnLater = False
-            self.willTurn = True
+        # if self.index == self.turnIndex:
+        #     self.turnLeft = True
+        # else:
+        #     self.turnLeft = False
+
+        # if (self.turnLeft and self.hasTurned and not isTurning):
+        #     self.turnLater = True
+        #     self.willTurn = True
+        # if (self.turnLater or turnOver):
+        #     self.turnLater = False
+        #     self.willTurn = True
 
         # print(turnOver, isTurning)
         # print(self.willTurn, self.turnLeft, self.turnLater)
@@ -180,20 +206,31 @@ class Rotor:
         else:
             return self.position
 
+    def next(self, step):
+        self.isTurning(step)
+        if not self.leftDevice == None:
+            self.leftDevice.next(self.turnLeft)
+        self.turn()
+
+
 class Enigma:
     # left most rotor has index 0
-    def __init__(self, rotors="123", rotorPositions="AAA", plugSettings="ABCDEFGHIJKLMNOPQRSTUVWXYZ", nRotors=maxRotors):
+    def __init__(self, rotors="123", rotorPositions="AAA", plugSettings="ABCDEFGHIJKLMNOPQRSTUVWXYZ", reflector="1", nRotors=maxRotors):
         self.nRotors = nRotors
         self.reflector = None
         self.plugBoard = None
         self.rotors = [None, None, None]
         for i in range(0, nRotors):
             self.setRotor(i, int(rotors[i]), rotorPositions[i])
-        self.setReflector(1)
+        self.setReflector(int(reflector))
         self.setPlugBoard(plugSettings)
+        self.originalRotorOrder = rotors
+        self.originalPlugSettings = plugSettings
+        self.originalReflector = reflector
 
     def setRotor(self, rotorPosition, type, position):
-        self.rotors[rotorPosition] = Rotor(rotors[type-1], rotorTurnOver[type-1], position)
+        middle = (rotorPosition == 1)
+        self.rotors[rotorPosition] = Rotor(rotors[type-1], rotorTurnOver[type-1], position, middle)
         if rotorPosition == 0:
             self.rotors[rotorPosition].setLeftDevice(self.reflector)
         else:
@@ -215,29 +252,49 @@ class Enigma:
         self.plugBoard = PlugBoard(setting)
         self.plugBoard.setLeftDevice(self.rotors[self.nRotors-1])
 
-    def encode(self, letter):
+    def encode(self, letter, step=True):
         if letter.isalpha():
             letter = letter.upper()
-            return self.plugBoard.passValue(letter, turnOver=True, isTurning=True)
+            return self.plugBoard.passValue(letter, step=step)
         else:
             return None
 
     def getSetting(self):
         return self.plugBoard.getSetting()
 
+    def copy(self):
+        return Enigma(rotors=self.originalRotorOrder, rotorPositions=self.getSetting(),
+         plugSettings=self.originalPlugSettings, reflector=self.originalReflector)
+
+    def next(self):
+        self.plugBoard.next(True)
+
+    def copyNext(self):
+        enigma = self.copy()
+        enigma.step()
+        return enigma
+
 
 if __name__ == "__main__":
-    enigma = Enigma()
+    rotorOrder = input("Please enter the rotor order (3 unique numbers between 1-5): ")[0:3]
+    print(rotorOrder)
+    rotorPositions = input("Please enter the ring setting (3 letters): ").upper()
+    print(rotorPositions)
+    plugboardSetting = input("Please enter the plug board setting. Make sure that the letters and positions match up. (NO checking): ")
+    if (not plugboardSetting):
+        enigma = Enigma(rotors=rotorOrder, rotorPositions=rotorPositions)
+    else:
+        enigma = Enigma(rotors=rotorOrder, rotorPositions=rotorPositions, plugSettings=plugboardSetting)
 
     text = str(input("Enter some plain/cipher text or EOF: "))
     while text:
         if (text.isalpha()):
             text = text.upper()
-            print("Current rotor postion: " + enigma.getSetting())
+            print("Current rotor position: " + enigma.getSetting())
             print(text)
             cipherText = ""
             for letter in text:
-                cipherText = cipherText + enigma.encode(letter)
+                cipherText = cipherText + enigma.encode(letter, step=False)
             print(cipherText + "\r\n")
         else:
             print("Please enter text as all letter. The Enigma machine does not use SPACES!!")
