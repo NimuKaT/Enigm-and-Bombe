@@ -271,7 +271,7 @@ class Enigma:
 
     def copyNext(self):
         enigma = self.copy()
-        enigma.step()
+        enigma.next()
         return enigma
 
 
@@ -280,11 +280,14 @@ if __name__ == "__main__":
     print(rotorOrder)
     rotorPositions = input("Please enter the ring setting (3 letters): ").upper()
     print(rotorPositions)
+    reflector = input("Please enter the reflector type (1-3): ")
+    if (not reflector):
+        reflector = "1"
     plugboardSetting = input("Please enter the plug board setting. Make sure that the letters and positions match up. (NO checking): ")
     if (not plugboardSetting):
-        enigma = Enigma(rotors=rotorOrder, rotorPositions=rotorPositions)
+        enigma = Enigma(rotors=rotorOrder, rotorPositions=rotorPositions, reflector=reflector)
     else:
-        enigma = Enigma(rotors=rotorOrder, rotorPositions=rotorPositions, plugSettings=plugboardSetting)
+        enigma = Enigma(rotors=rotorOrder, rotorPositions=rotorPositions, plugSettings=plugboardSetting, reflector=reflector)
 
     text = str(input("Enter some plain/cipher text or EOF: "))
     while text:
@@ -294,7 +297,7 @@ if __name__ == "__main__":
             print(text)
             cipherText = ""
             for letter in text:
-                cipherText = cipherText + enigma.encode(letter, step=False)
+                cipherText = cipherText + enigma.encode(letter, step=True)
             print(cipherText + "\r\n")
         else:
             print("Please enter text as all letter. The Enigma machine does not use SPACES!!")
